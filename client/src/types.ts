@@ -1,5 +1,3 @@
-import type { SetStateAction } from "react";
-
 export type ApiResponse = {
   response_code: number;
   results: Array<{
@@ -12,41 +10,9 @@ export type ApiResponse = {
   }>;
 };
 
-export type QuestionData = {
-  id: string;
-  difficulty: string;
-  category: string;
-  correctAnswer: string;
-  incorrectAnswers: string[];
-  allAnswers: string[];
-  question: string;
-  type: string;
-  questionHighlightColor: string;
-};
-
 export interface SelectionDictionary {
   [key: string]: string;
 }
-
-export type SelectFormProps = {
-  categories: Category[];
-  errors: string;
-  setCategory: React.Dispatch<React.SetStateAction<Category>>;
-  category: Category;
-  handleSelectionFormSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-  numQuestions: number;
-  setNumQuestions: React.Dispatch<React.SetStateAction<number>>;
-  difficulty: Difficulty;
-  difficulties: Difficulty[];
-  setDifficulty: React.Dispatch<React.SetStateAction<Difficulty>>;
-};
-
-export type QuestionProps = {
-  questionData: QuestionData;
-  setSelection: React.Dispatch<SetStateAction<SelectionDictionary>>;
-  selection: SelectionDictionary;
-  quizSubmitted: boolean;
-};
 
 export type Category = {
   name: string;
@@ -55,23 +21,6 @@ export type Category = {
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
 
-export const getAnswerColor = (
-  selection: SelectionDictionary,
-  questionData: QuestionData,
-  quizSubmitted: boolean,
-  thisAnswer: string,
-) => {
-  if (quizSubmitted) {
-    if (thisAnswer === questionData.correctAnswer) {
-      return "green";
-    }
 
-    if (selection[questionData.id] === thisAnswer) {
-      return "red";
-    }
-  }
-
-  return "black";
-};
 
 export type Mode = "select" | "quiz";
