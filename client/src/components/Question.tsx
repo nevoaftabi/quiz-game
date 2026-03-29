@@ -37,7 +37,7 @@ const getAnswerColor = (
     }
   }
 
-  return "black";
+  return "white";
 };
 
 const Question = ({
@@ -48,11 +48,14 @@ const Question = ({
   quizSubmitted,
 }: QuestionProps) => {
   return (
-    <div>
-      <p>{questionData.question}</p>
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+      <p className="mb-4 text-lg font-semibold text-slate-100">
+        {questionData.question}
+      </p>
       {questionData.allAnswers.map((answer) => (
         <div
           key={answer}
+          className="mb-3 last:mb-0"
           style={{
             color: getAnswerColor(
               selection,
@@ -62,8 +65,9 @@ const Question = ({
             ),
           }}
         >
-          <label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3 transition hover:border-sky-500/40 hover:bg-slate-900">
             <input
+              className="h-4 w-4 accent-sky-500"
               disabled={quizSubmitted}
               type="radio"
               name={questionData.id}
@@ -77,12 +81,10 @@ const Question = ({
                 }));
               }}
             />
-            {answer}
-            <br />
+            <span className="text-base leading-6">{answer}</span>
           </label>
         </div>
       ))}
-      <hr />
     </div>
   );
 };

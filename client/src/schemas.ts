@@ -28,8 +28,7 @@ export const makeQuizSubmissionSchema = (
   selection: SelectionDictionary,
 ) =>
   z
-    .object({
-    })
+    .object({})
     .refine(() => questions.every((q) => selection[q.id] !== undefined), {
       message: "Please answer every question before submitting",
     });

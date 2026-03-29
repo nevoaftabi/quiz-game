@@ -23,11 +23,24 @@ import SelectForm from "./components/SelectForm";
 import QuizForm from "./components/QuizForm";
 import type { QuestionData } from "./components/Question";
 
+type ErrorsProps = {
+  errors: string;
+}
+
+export const Errors = ({ errors}: ErrorsProps) => {
+  return errors
+    .split("✖")
+    .filter(Boolean)
+    .map((part, i) => <p key={i}>✖ {part.trim()}</p>);
+};
+
 function App() {
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [selection, setSelection] = useState<SelectionDictionary>({});
   const [score, setScore] = useState<null | number>(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [errors, setErrors] = useState("");
   const [category, setCategory] = useState<Category>({
@@ -41,8 +54,8 @@ function App() {
 
   const [difficulties] = useState<Difficulty[]>(["Easy", "Medium", "Hard"]);
 
-  const CategorySchema = makeCategorySchema(categories);
-  const QuizSubmissionSchema = makeQuizSubmissionSchema(questions, selection);
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   const fetchQuestions = async () => {
     try {
@@ -74,11 +87,12 @@ function App() {
           }),
         );
         setMode("quiz");
+        return true;
       } else {
-        alert("Failed to fetch");
+        return false;
       }
     } catch {
-      alert("Failed to fetch");
+      return false;
     }
   };
 
@@ -108,14 +122,32 @@ function App() {
     e: React.FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
-    const result = CategorySchema.safeParse({
+    setErrors("");
+    setLoadingMessage("");
+    const result = makeCategorySchema(categories).safeParse({
       ...category,
       difficulty,
-      numQuestions
+      numQuestions,
     });
 
     if (result.success) {
-      await fetchQuestions();
+      setIsLoading(true);
+      try {
+        setLoadingMessage("Loading questions...");
+        await sleep(3000);
+
+        let requestSucceeded = await fetchQuestions();
+
+        while (!requestSucceeded) {
+          setLoadingMessage("Request failed. Retrying in 5 seconds...");
+          await sleep(5000);
+          setLoadingMessage("Retrying request...");
+          requestSucceeded = await fetchQuestions();
+        }
+      } finally {
+        setLoadingMessage("");
+        setIsLoading(false);
+      }
     } else {
       setErrors(z.prettifyError(result.error));
     }
@@ -140,10 +172,11 @@ function App() {
     }
 
     if (action === "submit") {
+      const result = makeQuizSubmissionSchema(questions, selection).safeParse(
+        {},
+      );
 
-      const result = makeQuizSubmissionSchema(questions, selection).safeParse({});
-
-      if(!result.success) {
+      if (!result.success) {
         setErrors(z.prettifyError(result.error));
         alert("Please answer every question before submitting");
         return;
@@ -189,6 +222,8 @@ function App() {
     <>
       <SelectForm
         errors={errors}
+        isLoading={isLoading}
+        loadingMessage={loadingMessage}
         setCategory={setCategory}
         category={category}
         categories={categories}
@@ -198,6 +233,7 @@ function App() {
         difficulty={difficulty}
         setDifficulty={setDifficulty}
         setNumQuestions={setNumQuestions}
+
       />
     </>
   );

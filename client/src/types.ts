@@ -21,6 +21,4 @@ export type Category = {
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
 
-
-
 export type Mode = "select" | "quiz";
