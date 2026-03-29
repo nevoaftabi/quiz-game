@@ -28,15 +28,16 @@ export interface SelectionDictionary {
   [key: string]: string;
 }
 
-export type SelectModeCategories = {
-  categories: string[];
-  setCategory: React.Dispatch<React.SetStateAction<string>>;
-  category: string;
-  handleStartFormSubmit: (e: React.FormEvent<HTMLFormElement>) => void,
-  numQuestions: number
-  setNumQuestions: React.Dispatch<React.SetStateAction<number>>,
-  difficulty: Difficulty,
-  difficulties: Difficulty[],
+export type SelectFormProps = {
+  categories: Category[];
+  errors: string;
+  setCategory: React.Dispatch<React.SetStateAction<Category>>;
+  category: Category;
+  handleSelectionFormSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  numQuestions: number;
+  setNumQuestions: React.Dispatch<React.SetStateAction<number>>;
+  difficulty: Difficulty;
+  difficulties: Difficulty[];
   setDifficulty: React.Dispatch<React.SetStateAction<Difficulty>>;
 };
 
@@ -45,6 +46,11 @@ export type QuestionProps = {
   setSelection: React.Dispatch<SetStateAction<SelectionDictionary>>;
   selection: SelectionDictionary;
   quizSubmitted: boolean;
+};
+
+export type Category = {
+  name: string;
+  id: number;
 };
 
 export type Difficulty = "Easy" | "Medium" | "Hard";

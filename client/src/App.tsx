@@ -1,11 +1,15 @@
 /*
 TODO: 
 -Category count lookup: https://opentdb.com/api_count.php?category=CATEGORY_ID_HERE
--Form verification with Zod
+-Form verification with Zod (start form, quiz form)
 */
 
 import { useEffect, useRef, useState } from "react";
-import { decodeHtmlEntities, shuffleArray } from "./utils";
+import {
+  decodeHtmlEntities,
+  getApiUrl as getApiUrl,
+  shuffleArray,
+} from "./utils";
 import {
   type Difficulty,
   getAnswerColor,
@@ -14,8 +18,31 @@ import {
   type QuestionData,
   type QuestionProps,
   type SelectionDictionary,
-  type SelectModeCategories,
+  type SelectFormProps,
+  type Category,
 } from "./types";
+import z from "zod";
+
+const DifficultySchema = z.enum(["Easy", "Medium", "Hard"]);
+
+const makeCategorySchema = (categories: Category[]) =>
+  z
+    .object({
+      id: z.number().min(9).max(32),
+      name: z.string().min(1).max(50),
+      numQuestions: z.number().min(1).max(50),
+      difficulty: DifficultySchema,
+    })
+    .refine(
+      (value) =>
+        categories.some(
+          (category) =>
+            category.id === value.id && category.name === value.name,
+        ),
+      {
+        message: "Category is not in the allowed categories list",
+      },
+    );
 
 const Question = ({
   questionData,
@@ -72,7 +99,7 @@ type QuizProps = {
   score: number | null;
 };
 
-const Quiz = ({
+const QuizForm = ({
   handleSubmit,
   questions,
   selection,
@@ -93,11 +120,18 @@ const Quiz = ({
           />
         ))}
         <br />
-        <button disabled={quizSubmitted} type="submit">
+        <button
+          disabled={quizSubmitted}
+          name="action"
+          type="submit"
+          value="submit"
+        >
           Submit
         </button>
-        <button>Reset</button>
-        {score && (
+        <button type="submit" name="action" value="reset">
+          Reset
+        </button>
+        {quizSubmitted && (
           <p>
             Score: {score} / {Object.keys(questions).length}
           </p>
@@ -107,29 +141,37 @@ const Quiz = ({
   );
 };
 
-const SelectMode = ({
+const SelectForm = ({
   categories,
   setCategory,
   category,
-  handleStartFormSubmit,
+  handleSelectionFormSubmit,
   numQuestions,
   setNumQuestions,
   difficulty,
   setDifficulty,
-  difficulties
-}: SelectModeCategories) => {
+  difficulties,
+  errors,
+}: SelectFormProps) => {
   return (
-    <form onSubmit={() => handleStartFormSubmit}>
+    <form onSubmit={handleSelectionFormSubmit} method="post">
       <label htmlFor="">Select a category</label>
       <select
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
+        value={category.id}
+        onChange={(e) => {
+          const selectedId = Number(e.target.value);
+          const selectedCategory = categories.find((c) => c.id === selectedId);
+
+          if (selectedCategory) {
+            setCategory(selectedCategory);
+          }
+        }}
         name="category"
         id=""
       >
         {categories.map((c) => (
-          <option key={c} value={c}>
-            {c}
+          <option key={c.name} value={c.id}>
+            {c.name}
           </option>
         ))}
       </select>
@@ -137,18 +179,15 @@ const SelectMode = ({
       <label htmlFor="">Number of questions</label>
       <input
         type="number"
-        min={1}
-        max={50}
         value={numQuestions}
         onChange={(e) => setNumQuestions(Number(e.target.value))}
       />
       <br />
-          <label htmlFor="">Select a difficulty</label>
+      <label htmlFor="">Select a difficulty</label>
       <select
         value={difficulty}
-        onChange={(e) => setDifficulty(e.target.value)}
+        onChange={(e) => setDifficulty(e.target.value as Difficulty)}
         name="difficulty"
-        id=""
       >
         {difficulties.map((c) => (
           <option key={c} value={c}>
@@ -156,29 +195,46 @@ const SelectMode = ({
           </option>
         ))}
       </select>
+      <br />
       <button type="submit">Start</button>
+      {errors
+        .split("✖")
+        .filter(Boolean)
+        .map((part, i) => (
+          <p key={i}>✖ {part.trim()}</p>
+        ))}
     </form>
   );
 };
 
 function App() {
-  const url =
-    "https://opentdb.com/api.php?amount=5&category=18&difficulty=medium&type=multiple";
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [selection, setSelection] = useState<SelectionDictionary>({});
   const [score, setScore] = useState<null | number>(null);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [category, setCategory] = useState<string>("Select a category");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [errors, setErrors] = useState("");
+  const [category, setCategory] = useState<Category>({
+    id: -1,
+    name: "Select a category",
+  });
   const [numQuestions, setNumQuestions] = useState(1);
   const hasFetched = useRef(false);
   const [mode, setMode] = useState<Mode>("select");
   const [difficulty, setDifficulty] = useState<Difficulty>("Easy");
-  const [difficulties, setDifficulties] = useState<Difficulty[]>([ 'Easy', 'Medium', "Hard"])
+
+  const [difficulties] = useState<Difficulty[]>(["Easy", "Medium", "Hard"]);
+
+  const CategorySchema = makeCategorySchema(categories);
 
   const fetchQuestions = async () => {
     try {
-      const result = await fetch(url);
+      console.log("here");
+      const result = await fetch(
+        getApiUrl(numQuestions, category!, difficulty),
+      );
+      console.log(getApiUrl(numQuestions, category!, difficulty));
+      console.log("here2");
       if (result.ok) {
         const json: ApiResponse = await result.json();
 
@@ -203,6 +259,9 @@ function App() {
             };
           }),
         );
+        setMode("quiz");
+      } else {
+        alert("Failed to fetch");
       }
     } catch {
       alert("Failed to fetch");
@@ -219,9 +278,8 @@ function App() {
         const result = await fetch("https://opentdb.com/api_category.php");
         if (result.ok) {
           const json = await result.json();
-          const categoriesArray = json.trivia_categories.map((c) => c.name);
-          setCategories(categoriesArray);
-          setCategory(categoriesArray[0]);
+          setCategories(json.trivia_categories);
+          setCategory(json.trivia_categories[0]);
         } else {
           alert("Failed to fetch categories");
         }
@@ -232,36 +290,65 @@ function App() {
     fetchData();
   }, []);
 
-  const handleStartFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    // fetch question logic here
+  const handleSelectionFormSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    const result = CategorySchema.safeParse({
+      ...category,
+      difficulty,
+      numQuestions
+    });
+
+    if (result.success) {
+      await fetchQuestions();
+    } else {
+      setErrors(z.prettifyError(result.error));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    setScore(
-      questions.reduce(
-        (accum, currentValue) =>
-          accum +
-          (selection[currentValue.id] === currentValue.correctAnswer ? 1 : 0),
-        0,
-      ),
-    );
+    const submitter = (e.nativeEvent as SubmitEvent)
+      .submitter as HTMLButtonElement | null;
 
-    setQuizSubmitted(true);
+    const action = submitter?.value;
 
-    setQuestions((questions) =>
-      questions.map((q) => ({
-        ...q,
-        questionHighlightColor:
-          selection[q.id] === q.correctAnswer ? "green" : "red",
-      })),
-    );
+    if (action === "reset") {
+      setQuestions([]);
+      setScore(null);
+      setMode("select");
+      setQuizSubmitted(false);
+
+      return;
+    }
+
+    if (action === "submit") {
+      setScore(
+        questions.reduce(
+          (accum, currentValue) =>
+            accum +
+            (selection[currentValue.id] === currentValue.correctAnswer ? 1 : 0),
+          0,
+        ),
+      );
+
+      setQuizSubmitted(true);
+
+      setQuestions((questions) =>
+        questions.map((q) => ({
+          ...q,
+          questionHighlightColor:
+            selection[q.id] === q.correctAnswer ? "green" : "red",
+        })),
+      );
+    }
   };
 
   if (mode === "quiz") {
     return (
-      <Quiz
+      <QuizForm
         handleSubmit={handleSubmit}
         questions={questions}
         quizSubmitted={quizSubmitted}
@@ -274,11 +361,12 @@ function App() {
 
   return (
     <>
-      <SelectMode
+      <SelectForm
+        errors={errors}
         setCategory={setCategory}
         category={category}
         categories={categories}
-        handleStartFormSubmit={handleStartFormSubmit}
+        handleSelectionFormSubmit={handleSelectionFormSubmit}
         numQuestions={numQuestions}
         difficulties={difficulties}
         difficulty={difficulty}
