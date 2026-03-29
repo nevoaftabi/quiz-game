@@ -18,7 +18,7 @@ import {
   type Category,
 } from "./types";
 import z from "zod";
-import { makeCategorySchema } from "./schemas";
+import { makeCategorySchema, makeQuizSubmissionSchema } from "./schemas";
 import SelectForm from "./components/SelectForm";
 import QuizForm from "./components/QuizForm";
 import type { QuestionData } from "./components/Question";
@@ -34,7 +34,7 @@ function App() {
     id: -1,
     name: "Select a category",
   });
-  const [numQuestions, setNumQuestions] = useState(1);
+  const [numQuestions, setNumQuestions] = useState(5);
   const hasFetched = useRef(false);
   const [mode, setMode] = useState<Mode>("select");
   const [difficulty, setDifficulty] = useState<Difficulty>("Easy");
@@ -42,15 +42,13 @@ function App() {
   const [difficulties] = useState<Difficulty[]>(["Easy", "Medium", "Hard"]);
 
   const CategorySchema = makeCategorySchema(categories);
+  const QuizSubmissionSchema = makeQuizSubmissionSchema(questions, selection);
 
   const fetchQuestions = async () => {
     try {
-      console.log("here");
       const result = await fetch(
         getApiUrl(numQuestions, category!, difficulty),
       );
-      console.log(getApiUrl(numQuestions, category!, difficulty));
-      console.log("here2");
       if (result.ok) {
         const json: ApiResponse = await result.json();
 
@@ -132,6 +130,7 @@ function App() {
     const action = submitter?.value;
 
     if (action === "reset") {
+      setErrors("");
       setQuestions([]);
       setScore(null);
       setMode("select");
@@ -141,6 +140,15 @@ function App() {
     }
 
     if (action === "submit") {
+
+      const result = makeQuizSubmissionSchema(questions, selection).safeParse({});
+
+      if(!result.success) {
+        setErrors(z.prettifyError(result.error));
+        alert("Please answer every question before submitting");
+        return;
+      }
+
       setScore(
         questions.reduce(
           (accum, currentValue) =>
@@ -165,10 +173,12 @@ function App() {
   if (mode === "quiz") {
     return (
       <QuizForm
+        setErrors={setErrors}
         handleSubmit={handleSubmit}
         questions={questions}
         quizSubmitted={quizSubmitted}
         score={score}
+        errors={errors}
         selection={selection}
         setSelection={setSelection}
       />

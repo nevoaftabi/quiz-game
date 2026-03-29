@@ -8,6 +8,8 @@ type QuizFormProps = {
   selection: SelectionDictionary;
   setSelection: React.Dispatch<React.SetStateAction<SelectionDictionary>>;
   score: number | null;
+  errors: string;
+  setErrors: React.Dispatch<React.SetStateAction<string>>;
 };
 
 const QuizForm = ({
@@ -16,13 +18,16 @@ const QuizForm = ({
   selection,
   quizSubmitted,
   setSelection,
+  setErrors,
   score,
+  errors,
 }: QuizFormProps) => {
   return (
     <>
       <form onSubmit={handleSubmit}>
         {questions.map((q) => (
           <Question
+            setErrors={setErrors}
             quizSubmitted={quizSubmitted}
             key={q.id}
             selection={selection}
@@ -40,8 +45,14 @@ const QuizForm = ({
           Submit
         </button>
         <button type="submit" name="action" value="reset">
-          Reset
+          Back
         </button>
+        {errors
+          .split("✖")
+          .filter(Boolean)
+          .map((part, i) => (
+            <p key={i}>✖ {part.trim()}</p>
+          ))}
         {quizSubmitted && (
           <p>
             Score: {score} / {Object.keys(questions).length}

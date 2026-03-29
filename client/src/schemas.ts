@@ -1,8 +1,8 @@
 import z from "zod";
-import type { Category } from "./types";
+import type { Category, SelectionDictionary } from "./types";
+import type { QuestionData } from "./components/Question";
 
 const DifficultySchema = z.enum(["Easy", "Medium", "Hard"]);
-
 
 export const makeCategorySchema = (categories: Category[]) =>
   z
@@ -22,3 +22,14 @@ export const makeCategorySchema = (categories: Category[]) =>
         message: "Category is not in the allowed categories list",
       },
     );
+
+export const makeQuizSubmissionSchema = (
+  questions: QuestionData[],
+  selection: SelectionDictionary,
+) =>
+  z
+    .object({
+    })
+    .refine(() => questions.every((q) => selection[q.id] !== undefined), {
+      message: "Please answer every question before submitting",
+    });

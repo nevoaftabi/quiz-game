@@ -18,6 +18,7 @@ type QuestionProps = {
   setSelection: React.Dispatch<SetStateAction<SelectionDictionary>>;
   selection: SelectionDictionary;
   quizSubmitted: boolean;
+  setErrors: React.Dispatch<SetStateAction<string>>;
 };
 
 const getAnswerColor = (
@@ -42,6 +43,7 @@ const getAnswerColor = (
 const Question = ({
   questionData,
   setSelection,
+  setErrors,
   selection,
   quizSubmitted,
 }: QuestionProps) => {
@@ -63,17 +65,17 @@ const Question = ({
           <label>
             <input
               disabled={quizSubmitted}
-              required
               type="radio"
               name={questionData.id}
               value={answer}
               checked={selection[questionData.id] === answer}
-              onChange={(e) =>
+              onChange={(e) => {
+                setErrors("");
                 setSelection((prev) => ({
                   ...prev,
                   [questionData.id]: e.target.value,
-                }))
-              }
+                }));
+              }}
             />
             {answer}
             <br />
