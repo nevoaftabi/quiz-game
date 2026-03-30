@@ -1,11 +1,15 @@
-import { Errors } from "../App";
 import type { Category, Difficulty } from "../types";
 
 export type SelectFormProps = {
   categories: Category[];
-  errors: string;
   isLoading: boolean;
   loadingMessage: string;
+  selectFormErrors: {
+    summary: string;
+    category?: string;
+    numQuestions?: string;
+    difficulty?: string;
+  };
   setCategory: React.Dispatch<React.SetStateAction<Category>>;
   category: Category;
   handleSelectionFormSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -26,12 +30,24 @@ const SelectForm = ({
   difficulty,
   setDifficulty,
   difficulties,
-  errors,
   isLoading,
   loadingMessage,
+  selectFormErrors,
 }: SelectFormProps) => {
+  const categoryHasError = Boolean(selectFormErrors.category);
+  const difficultyHasError = Boolean(selectFormErrors.difficulty);
+  const immediateNumQuestionsError =
+    Number.isNaN(numQuestions) || numQuestions < 1
+      ? "Choose at least 1 question."
+      : numQuestions > 50
+        ? "Choose 50 questions or fewer."
+        : "";
+  const displayedNumQuestionsError =
+    selectFormErrors.numQuestions || immediateNumQuestionsError;
+  const hasNumQuestionsError = Boolean(displayedNumQuestionsError);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 text-slate-100">
+    <div className="flex w-full items-start justify-center px-4 pt-2 pb-6 text-slate-100">
       <form
         onSubmit={handleSelectionFormSubmit}
         method="post"
@@ -47,18 +63,34 @@ const SelectForm = ({
           </p>
         </div>
 
+        {selectFormErrors.summary && (
+          <div className="mb-6 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+            <p className="font-semibold">There’s a problem with your setup.</p>
+            <p className="mt-1 text-rose-200">{selectFormErrors.summary}</p>
+          </div>
+        )}
+
         <div className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-200" htmlFor="category">
+            <label
+              className="text-sm font-medium text-slate-200"
+              htmlFor="category"
+            >
               Select a category
             </label>
             <select
-              className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`w-full rounded-2xl border bg-slate-950 px-4 py-3 text-slate-100 outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                categoryHasError
+                  ? "border-rose-500 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/30"
+                  : "border-slate-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+              }`}
               disabled={isLoading}
               value={category.id}
               onChange={(e) => {
                 const selectedId = Number(e.target.value);
-                const selectedCategory = categories.find((c) => c.id === selectedId);
+                const selectedCategory = categories.find(
+                  (c) => c.id === selectedId,
+                );
 
                 if (selectedCategory) {
                   setCategory(selectedCategory);
@@ -73,28 +105,53 @@ const SelectForm = ({
                 </option>
               ))}
             </select>
+            {categoryHasError && (
+              <p className="text-sm font-medium text-rose-300">
+                {selectFormErrors.category}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-200" htmlFor="numQuestions">
+            <label
+              className="text-sm font-medium text-slate-200"
+              htmlFor="numQuestions"
+            >
               Number of questions
             </label>
             <input
-              className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`w-full rounded-2xl border bg-slate-950 px-4 py-3 text-slate-100 outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                hasNumQuestionsError
+                  ? "border-rose-500 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/30"
+                  : "border-slate-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+              }`}
               disabled={isLoading}
               id="numQuestions"
               type="number"
+              aria-invalid={hasNumQuestionsError}
               value={numQuestions}
               onChange={(e) => setNumQuestions(Number(e.target.value))}
             />
+            {hasNumQuestionsError && (
+              <p className="text-sm font-medium text-rose-300">
+                {displayedNumQuestionsError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-200" htmlFor="difficulty">
+            <label
+              className="text-sm font-medium text-slate-200"
+              htmlFor="difficulty"
+            >
               Select a difficulty
             </label>
             <select
-              className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`w-full rounded-2xl border bg-slate-950 px-4 py-3 text-slate-100 outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                difficultyHasError
+                  ? "border-rose-500 focus:border-rose-400 focus:ring-2 focus:ring-rose-500/30"
+                  : "border-slate-700 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30"
+              }`}
               disabled={isLoading}
               value={difficulty}
               onChange={(e) => setDifficulty(e.target.value as Difficulty)}
@@ -107,6 +164,11 @@ const SelectForm = ({
                 </option>
               ))}
             </select>
+            {difficultyHasError && (
+              <p className="text-sm font-medium text-rose-300">
+                {selectFormErrors.difficulty}
+              </p>
+            )}
           </div>
         </div>
 
@@ -123,10 +185,6 @@ const SelectForm = ({
             {loadingMessage}
           </p>
         )}
-
-        <div className="mt-6 space-y-2 text-sm text-rose-300">
-          <Errors errors={errors} />
-        </div>
       </form>
     </div>
   );

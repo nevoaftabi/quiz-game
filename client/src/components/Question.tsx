@@ -1,24 +1,12 @@
 import type { SetStateAction } from "react";
-import { type SelectionDictionary } from "../types";
-
-export type QuestionData = {
-  id: string;
-  difficulty: string;
-  category: string;
-  correctAnswer: string;
-  incorrectAnswers: string[];
-  allAnswers: string[];
-  question: string;
-  type: string;
-  questionHighlightColor: string;
-};
+import type { QuestionData, SelectionDictionary } from "../types";
 
 type QuestionProps = {
   questionData: QuestionData;
   setSelection: React.Dispatch<SetStateAction<SelectionDictionary>>;
   selection: SelectionDictionary;
   quizSubmitted: boolean;
-  setErrors: React.Dispatch<SetStateAction<string>>;
+  showMissingAnswers: boolean;
 };
 
 const getAnswerColor = (
@@ -43,15 +31,29 @@ const getAnswerColor = (
 const Question = ({
   questionData,
   setSelection,
-  setErrors,
   selection,
   quizSubmitted,
+  showMissingAnswers,
 }: QuestionProps) => {
+  const isMissingAnswer =
+    showMissingAnswers && selection[questionData.id] === undefined;
+
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+    <div
+      className={`rounded-2xl border p-5 ${
+        isMissingAnswer
+          ? "border-rose-500/60 bg-rose-500/10 shadow-lg shadow-rose-950/20"
+          : "border-slate-800 bg-slate-950/60"
+      }`}
+    >
       <p className="mb-4 text-lg font-semibold text-slate-100">
         {questionData.question}
       </p>
+      {isMissingAnswer && (
+        <p className="mb-4 text-sm font-medium text-rose-300">
+          Choose one answer for this question.
+        </p>
+      )}
       {questionData.allAnswers.map((answer) => (
         <div
           key={answer}
@@ -74,7 +76,6 @@ const Question = ({
               value={answer}
               checked={selection[questionData.id] === answer}
               onChange={(e) => {
-                setErrors("");
                 setSelection((prev) => ({
                   ...prev,
                   [questionData.id]: e.target.value,

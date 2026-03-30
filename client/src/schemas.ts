@@ -1,15 +1,19 @@
 import z from "zod";
-import type { Category, SelectionDictionary } from "./types";
-import type { QuestionData } from "./components/Question";
+import type { Category, QuestionData, SelectionDictionary } from "./types";
 
 const DifficultySchema = z.enum(["Easy", "Medium", "Hard"]);
 
 export const makeCategorySchema = (categories: Category[]) =>
   z
     .object({
-      id: z.number().min(9).max(32),
-      name: z.string().min(1).max(50),
-      numQuestions: z.number().min(1).max(50),
+      id: z
+        .number()
+        .positive("Please choose a category from the list."),
+      name: z.string().min(1, "Please choose a category from the list."),
+      numQuestions: z
+        .number()
+        .min(1, "Choose at least 1 question.")
+        .max(50, "Choose 50 questions or fewer."),
       difficulty: DifficultySchema,
     })
     .refine(
@@ -19,7 +23,7 @@ export const makeCategorySchema = (categories: Category[]) =>
             category.id === value.id && category.name === value.name,
         ),
       {
-        message: "Category is not in the allowed categories list",
+        message: "Please choose a category from the list.",
       },
     );
 

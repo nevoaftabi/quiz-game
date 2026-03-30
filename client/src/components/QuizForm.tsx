@@ -1,16 +1,14 @@
-import { Errors } from "../App";
-import type { SelectionDictionary } from "../types";
-import Question, { type QuestionData } from "./Question";
+import type { QuestionData, SelectionDictionary } from "../types";
+import Question from "./Question";
 
 type QuizFormProps = {
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   questions: QuestionData[];
   quizSubmitted: boolean;
+  showMissingAnswers: boolean;
   selection: SelectionDictionary;
   setSelection: React.Dispatch<React.SetStateAction<SelectionDictionary>>;
   score: number | null;
-  errors: string;
-  setErrors: React.Dispatch<React.SetStateAction<string>>;
 };
 
 const QuizForm = ({
@@ -18,17 +16,13 @@ const QuizForm = ({
   questions,
   selection,
   quizSubmitted,
+  showMissingAnswers,
   setSelection,
-  setErrors,
   score,
-  errors,
 }: QuizFormProps) => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 text-slate-100">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-3xl rounded-3xl border border-slate-800 bg-slate-900/90 p-8 shadow-2xl shadow-slate-950/40 backdrop-blur"
-      >
+    <div className="w-full max-w-3xl rounded-3xl border border-slate-800 bg-slate-900/90 p-8 shadow-2xl shadow-slate-950/40 backdrop-blur">
+      <form onSubmit={handleSubmit}>
         <div className="mb-8 text-center">
           <p className="text-sm uppercase tracking-[0.3em] text-sky-400">
             Quiz In Progress
@@ -39,17 +33,24 @@ const QuizForm = ({
           </p>
         </div>
 
+        {showMissingAnswers && (
+          <div className="mb-6 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200">
+            Please answer every question before submitting. Unanswered
+            questions are highlighted below.
+          </div>
+        )}
+
         <div className="space-y-6">
-        {questions.map((q) => (
-          <Question
-            setErrors={setErrors}
-            quizSubmitted={quizSubmitted}
-            key={q.id}
-            selection={selection}
-            questionData={q}
-            setSelection={setSelection}
-          />
-        ))}
+          {questions.map((q) => (
+            <Question
+              quizSubmitted={quizSubmitted}
+              key={q.id}
+              selection={selection}
+              showMissingAnswers={showMissingAnswers}
+              questionData={q}
+              setSelection={setSelection}
+            />
+          ))}
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -72,13 +73,9 @@ const QuizForm = ({
           </button>
         </div>
 
-        <div className="mt-6 space-y-2 text-sm text-rose-300">
-          <Errors errors={errors} />
-        </div>
-
         {quizSubmitted && (
           <p className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-center text-lg font-semibold text-emerald-300">
-            Score: {score} / {Object.keys(questions).length}
+            Score: {score} / {questions.length}
           </p>
         )}
       </form>
