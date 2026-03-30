@@ -134,8 +134,6 @@ function App() {
       setIsLoading(true);
       try {
         setLoadingMessage("Loading questions...");
-        await sleep(3000);
-
         let requestSucceeded = await fetchQuestions();
 
         while (!requestSucceeded) {
